@@ -35,6 +35,13 @@ module GitDiffParser
         expect(patches[3].body).to eq body3
       end
 
+      it 'does not remove newlines when opening via parse method' do
+        show_body = File.read('spec/support/fixtures/patch2.diff')
+        patches = Patches.parse(show_body)
+
+        expect(patches[0].changed_line_numbers).to eq([15, 16, 79, 80, 82, 84, 85, 86, 92, 93, 94, 95, 96, 100, 113, 130, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160])
+      end
+
       it 'handles non UTF-8 encoding characters' do
         patches = nil
         expect { patches = Patches.parse(sjis_body) }.not_to raise_error

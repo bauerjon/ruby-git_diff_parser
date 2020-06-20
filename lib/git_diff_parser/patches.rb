@@ -17,8 +17,9 @@ module GitDiffParser
       lines = contents.lines
       line_count = lines.count
       parsed = new
+
       lines.each_with_index do |line, count|
-        case parsed.scrub_string(line.chomp)
+        case parsed.scrub_string(line)
         when /^diff/
           unless patch.empty?
             parsed << Patch.new(patch.join("\n") + "\n", file: file_name)
@@ -30,7 +31,7 @@ module GitDiffParser
         when %r{^\+\+\+ b/(?<file_name>.*)}
           file_name = Regexp.last_match[:file_name].rstrip
           body = true
-        when /^(?<body>[\ @\+\-\\].*)/
+        when /^(?<body>[\ @\+\-\\].*)|\n/
           patch << Regexp.last_match[:body] if body
           if !patch.empty? && body && line_count == count + 1
             parsed << Patch.new(patch.join("\n") + "\n", file: file_name)
