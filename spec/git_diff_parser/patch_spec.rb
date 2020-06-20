@@ -19,6 +19,16 @@ module GitDiffParser
           expect(patch.changed_lines.size).to eq(0)
         end
       end
+
+      context 'patch2' do
+        it 'returns lines that were modified' do
+          patch_body = File.read('spec/support/fixtures/patch2.diff')
+          patch = Patch.new(patch_body)
+
+          expect(patch.changed_lines.size).to eq(35)
+          expect(patch.changed_lines.map(&:number)).to eq [15, 16, 79, 80, 82, 84, 85, 86, 92, 93, 94, 95, 96, 100, 113, 130, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160]
+        end
+      end
     end
 
     describe '#removed_lines' do
@@ -27,7 +37,7 @@ module GitDiffParser
         patch = Patch.new(patch_body)
 
         expect(patch.removed_lines.size).to eq(7)
-        expect(patch.removed_lines.map(&:number)).to eq [11, 36, 37, 38, 39, 40, 48]
+        expect(patch.removed_lines.map(&:number)).to eq [14, 38, 39, 40, 41, 42, 58]
         expect(patch.removed_lines.map(&:patch_position)).to eq [4, 21, 22, 23, 24, 25, 36]
       end
 
@@ -36,6 +46,16 @@ module GitDiffParser
           patch = Patch.new(nil)
 
           expect(patch.removed_lines.size).to eq(0)
+        end
+      end
+
+      context 'patch2' do
+        it 'returns lines that were modified' do
+          patch_body = File.read('spec/support/fixtures/patch2.diff')
+          patch = Patch.new(patch_body)
+
+          expect(patch.removed_lines.size).to eq(10)
+          expect(patch.removed_lines.map(&:number)).to eq [78, 80, 86, 90, 91, 92, 93, 94, 107, 124]
         end
       end
     end

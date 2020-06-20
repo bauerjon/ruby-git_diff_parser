@@ -1,0 +1,94 @@
+diff --git a/app/models/brain.rb b/app/models/brain.rb
+index c5591f5..e370354 100644
+--- a/app/models/brain.rb
++++ b/app/models/brain.rb
+@@ -12,6 +12,8 @@ class Brain < ApplicationRecord
+   after_brain :create_update_or_destroy_activity_data_point!
+   after_brain :update_pr_stats!, on: [:create, :update]
+
++  LINE_CALC_CUTOFF = 3.weeks.to_i
++
+   def self.find_or_create_brains(container, brain_data)
+     contributors = Contributor.find_or_create_contributors_from_brain_data(organization: container.organization, brain_data: brain_data)
+     contributor = contributors.first
+@@ -74,24 +76,28 @@ class Brain < ApplicationRecord
+   end
+
+   def update_line_change_metrics!
++    self.reload
++
+     update!(
+-      a: calculated_a,
++      b: calculated_b,
+       c: calculated_c,
+-      d: calculated_d
++      d: calculated_d,
++      e: calculated_e,
++      a: calculate_a
+     )
+   end
+
+   private
+
+-  def calculated_a
++  def calculate_a
++    calculated_b + calculated_e * 2
++  end
++
++  def calculated_b
+     value = 0
+
+     cars.each do |line_change|
+-      if container.cars
+-          .where('created_at >= ?', Time.now.utc - 3.weeks)
+-          .where('created_at < ?', line_change.created_at)
+-          .where(line_hash: line_change.line_hash)
+-          .empty?
++      if container.cars .where('created_at >= ?', line_change.created_at - LINE_CALC_CUTOFF) .where('created_at < ?', line_change.created_at) .where(line_hash: line_change.line_hash) .empty?
+         value += 1
+       end
+     end
+@@ -104,7 +110,7 @@ class Brain < ApplicationRecord
+
+     cars.each do |line_change|
+       if container.cars
+-          .where('created_at >= ?', Time.now.utc - 3.weeks)
++          .where('created_at >= ?', line_change.created_at - LINE_CALC_CUTOFF)
+           .where('created_at < ?', line_change.created_at)
+           .where(line_hash: line_change.line_hash)
+           .where(author_email: line_change.author_email)
+@@ -121,7 +127,7 @@ class Brain < ApplicationRecord
+
+     cars.each do |line_change|
+       if container.cars
+-          .where('created_at >= ?', Time.now.utc - 3.weeks)
++          .where('created_at >= ?', line_change.created_at - LINE_CALC_CUTOFF)
+           .where('created_at < ?', line_change.created_at)
+           .where(line_hash: line_change.line_hash)
+           .where.not(author_email: line_change.author_email)
+@@ -133,6 +139,25 @@ class Brain < ApplicationRecord
+     value
+   end
+
++  def calculated_e
++    value = 0
++
++    cars.each do |line_change|
++      if (container.cars
++          .where('created_at >= ?', line_change.created_at - LINE_CALC_CUTOFF)
++          .where('created_at < ?', line_change.created_at)
++          .where(line_hash: line_change.line_hash)
++          .empty?) && (container.cars
++                        .where('created_at < ?', line_change.created_at - LINE_CALC_CUTOFF)
++                        .where(line_hash: line_change.line_hash)
++                        .exists?)
++        value += 1
++      end
++    end
++
++    value
++  end
++
+   def update_pr_stats!
+     birds.map(&:save!)
+   end

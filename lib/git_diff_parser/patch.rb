@@ -1,10 +1,12 @@
 module GitDiffParser
   # Parsed patch
   class Patch
-    RANGE_INFORMATION_LINE = /^@@ .+\+(?<line_number>\d+),/
+    RANGE_INFORMATION_LINE_CHANGED = /^@@ .+\+(?<line_number>\d+),/
+    RANGE_INFORMATION_LINE_REMOVED = /^@@.+\-(?<line_number>\d+),/
     MODIFIED_LINE = /^\+(?!\+|\+)/
-    REMOVED_LINE = /^[-]/
+    REMOVED_LINE = /^\-(?!\-|\-)/
     NOT_REMOVED_LINE = /^[^-]/
+    NOT_CHANGED_LINE = /^[^+]/
 
     attr_accessor :file, :body, :secure_hash
     # @!attribute [rw] file
@@ -56,10 +58,11 @@ module GitDiffParser
     # @return [Array<Line>] changed lines
     def changed_lines
       line_number = 0
+      lines_changed = []
 
-      lines.each_with_index.inject([]) do |lines, (content, patch_position)|
+      lines.each_with_index do |content, patch_position|
         case content
-        when RANGE_INFORMATION_LINE
+        when RANGE_INFORMATION_LINE_CHANGED
           line_number = Regexp.last_match[:line_number].to_i
         when MODIFIED_LINE
           line = Line.new(
@@ -67,23 +70,25 @@ module GitDiffParser
             number: line_number,
             patch_position: patch_position
           )
-          lines << line
+          lines_changed << line
           line_number += 1
         when NOT_REMOVED_LINE
           line_number += 1
         end
-
-        lines
       end
+
+
+      lines_changed
     end
 
     # @return [Array<Line>] removed lines
     def removed_lines
       line_number = 0
+      lines_removed = []
 
-      lines.each_with_index.inject([]) do |lines, (content, patch_position)|
+      lines.each_with_index do |content, patch_position|
         case content
-        when RANGE_INFORMATION_LINE
+        when RANGE_INFORMATION_LINE_REMOVED
           line_number = Regexp.last_match[:line_number].to_i
         when REMOVED_LINE
           line = Line.new(
@@ -91,12 +96,14 @@ module GitDiffParser
             number: line_number,
             patch_position: patch_position
           )
-          lines << line
+          lines_removed << line
+          line_number += 1
+        when NOT_CHANGED_LINE
           line_number += 1
         end
-
-        lines
       end
+
+      lines_removed
     end
 
     # @return [Array<Integer>] changed line numbers
